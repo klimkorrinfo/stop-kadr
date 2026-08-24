@@ -1,0 +1,9 @@
+{
+  "name": "stop-kadr",
+  "private": true,
+  "version": "1.0.0",
+  "description": "СТОП-КАДР — фотоквест. Требует npm install при деплое (для Netlify Blobs).",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
