@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Панель организатора · СТОП-КАДР</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { background: #08080B; }
+  body { font-family: 'Inter', sans-serif; color: #F3EFE4; }
+  .scene-num { font-family: 'Bebas Neue', sans-serif; letter-spacing: .05em; }
+  .gold-text {
+    background: linear-gradient(180deg, #F5DA8C 0%, #D4AF37 55%, #A8842A 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .card-frame {
+    background: linear-gradient(180deg, #151320 0%, #100E17 100%);
+    border: 1px solid rgba(212,175,55,0.18);
+  }
+  .btn-primary {
+    background: linear-gradient(180deg, #F0CE6B 0%, #D4AF37 100%);
+    color: #100E17;
+  }
+  .btn-ghost { border: 1px solid rgba(243,239,228,0.25); color: #F3EFE4; }
+  .admin-tab-btn { background: rgba(243,239,228,0.06); color: #8B879C; border: 1px solid rgba(243,239,228,0.12); }
+  .admin-tab-btn.active { background: linear-gradient(180deg, #F0CE6B 0%, #D4AF37 100%); color: #100E17; border-color: transparent; }
+  .photo-filter-btn { background: rgba(243,239,228,0.06); color: #8B879C; border: 1px solid rgba(243,239,228,0.12); }
+  .photo-filter-btn.active { background: rgba(212,175,55,0.18); color: #F0CE6B; border-color: rgba(212,175,55,0.4); }
+  .status-badge { font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; display: inline-block; }
+  .status-pending { background: rgba(243,239,228,0.1); color: #C9C4D6; }
+  .status-approved { background: rgba(74,222,128,0.15); color: #4ADE80; }
+  .status-rejected { background: rgba(248,113,113,0.15); color: #F87171; }
+  input[type="file"] { display: none; }
+</style>
+</head>
+<body class="bg-reel-black min-h-screen">
+
+<div class="max-w-md mx-auto px-[22px] py-8">
+
+  <!-- ============================================================ -->
+  <!-- ЭКРАН ПАРОЛЯ — простая форма без sessionStorage и сложной логики -->
+  <!-- ============================================================ -->
+  <div id="gate">
+    <p class="text-center text-4xl mb-3">🎬</p>
+    <h1 class="scene-num text-center text-4xl gold-text mb-1">Панель организатора</h1>
+    <p class="text-center text-reel-muted text-sm mb-8">СТОП-КАДР · ОК Дагомыс</p>
+
+    <form id="gate-form" class="flex flex-col gap-3">
+      <input
+        id="gate-password"
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        enterkeyhint="go"
+        placeholder="Пароль"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+        class="w-full bg-reel-panel2 border border-reel-gold/25 rounded-2xl px-4 py-4 text-reel-cream text-center text-lg tracking-widest placeholder:text-reel-muted focus:outline-none focus:border-reel-gold"
+      />
+      <p id="gate-error" class="hidden text-center text-red-400 text-sm">Неверный пароль. Попробуйте ещё раз.</p>
+      <button type="submit" class="btn-primary w-full py-4 rounded-2xl font-bold text-[15px] uppercase mt-2">Войти</button>
+    </form>
+
+    <a href="index.html" class="block text-center text-reel-muted text-sm mt-6 underline underline-offset-2">← Вернуться на сайт квеста</a>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- САМА ПАНЕЛЬ (показывается после верного пароля) -->
+  <!-- ============================================================ -->
+  <div id="panel" class="hidden">
+    <div class="flex items-center justify-between mb-1">
+      <a href="index.html" class="flex items-center gap-1.5 text-reel-muted text-sm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        К квесту
+      </a>
+      <button id="btn-logout" class="text-reel-muted text-sm underline underline-offset-2">Выйти</button>
+    </div>
+
+    <h1 class="scene-num text-3xl gold-text mt-3 mb-1">Панель организатора</h1>
+
+    <div class="flex gap-2 mb-5">
+      <button id="tab-btn-scenes" class="admin-tab-btn flex-1 py-2.5 rounded-xl font-semibold text-[13px] uppercase tracking-wide">Сцены</button>
+      <button id="tab-btn-photos" class="admin-tab-btn flex-1 py-2.5 rounded-xl font-semibold text-[13px] uppercase tracking-wide">Фото команд</button>
+    </div>
+
+    <!-- ======================== ВКЛАДКА: СЦЕНЫ ======================== -->
+    <div id="tab-scenes">
+    <p class="text-reel-muted text-[13px] leading-relaxed mb-5">
+      Меняйте название фильма, описание позы и фото-образец. Ненужные сцены можно удалить.
+      «Сохранить» применяет правки в этом браузере. Чтобы их увидели все гости —
+      скопируйте код и вставьте в <code class="text-reel-goldlight">script.js</code>.
+    </p>
+
+    <div id="task-list"></div>
+
+    <button id="btn-add-scene" class="btn-ghost w-full py-3.5 rounded-2xl font-semibold text-[14px] mb-8 mt-2">
+      + Добавить сцену
+    </button>
+
+    <div class="card-frame rounded-2xl p-5 mb-4">
+      <p class="scene-num text-reel-gold text-sm tracking-widest2 uppercase mb-2">Сохранение</p>
+      <div class="flex flex-col gap-2.5">
+        <button id="btn-save" class="btn-primary w-full py-3.5 rounded-2xl font-bold text-[14px] uppercase">Сохранить изменения</button>
+        <button id="btn-copy-code" class="btn-ghost w-full py-3.5 rounded-2xl font-semibold text-[14px]">Скопировать код для сайта</button>
+        <button id="btn-reset" class="w-full py-3 rounded-2xl font-medium text-[13px] text-reel-muted underline underline-offset-2">Восстановить исходный список из 10 сцен</button>
+      </div>
+      <p id="save-status" class="hidden text-center text-reel-goldlight text-sm mt-3"></p>
+    </div>
+
+    <textarea id="export-code" class="hidden" readonly></textarea>
+    </div>
+
+    <!-- ======================== ВКЛАДКА: ФОТО КОМАНД ======================== -->
+    <div id="tab-photos" class="hidden">
+      <p class="text-reel-muted text-[13px] leading-relaxed mb-4">
+        Здесь собраны все присланные гостями фото. Одобряйте или отклоняйте кадры,
+        отмечайте звёздочкой те, что понравились больше всего.
+      </p>
+
+      <div class="flex gap-2 mb-4 overflow-x-auto pb-1" id="photo-filters">
+        <button data-filter="all" class="photo-filter-btn px-3.5 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap">Все</button>
+        <button data-filter="pending" class="photo-filter-btn px-3.5 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap">На проверке</button>
+        <button data-filter="approved" class="photo-filter-btn px-3.5 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap">Одобренные</button>
+        <button data-filter="rejected" class="photo-filter-btn px-3.5 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap">Отклонённые</button>
+        <button data-filter="favorite" class="photo-filter-btn px-3.5 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap">★ Понравились</button>
+      </div>
+
+      <button id="btn-refresh-photos" class="btn-ghost w-full py-3 rounded-2xl font-semibold text-[13px] mb-4">Обновить список</button>
+
+      <p id="photos-status" class="text-center text-reel-muted text-sm py-6"></p>
+      <div id="photo-list" class="flex flex-col gap-4"></div>
+    </div>
+  </div>
+
+  <!-- Видимая диагностика — если что-то пошло не так, это будет видно сразу -->
+  <p id="diag" class="hidden text-center text-red-400 text-xs mt-8"></p>
+
+</div>
+
+<script>
+// =====================================================================
+// Панель организатора — полностью автономная страница.
+// Никакого sessionStorage, никакой сложной системы переключения экранов —
+// максимально простой и надёжный код, чтобы вход работал в любом браузере.
+// =====================================================================
+
+var ADMIN_PASSWORD = "2026";
+var TASKS_STORAGE_KEY = "stopkadr_tasks_v1"; // тот же ключ, что и на основном сайте (script.js)
+
+var DEFAULT_TASKS = [
+  { id: 1, film: "Титаник", desc: "Найдите на территории комплекса перила. Раскиньте руки, как крылья, в стороны и насладитесь моментом беспечности.", sample: "images/01-titanic.jpg" },
+  { id: 2, film: "Матрица", desc: "Найдите удобное место на фоне главного корпуса, где можно эффектно отклониться назад, уворачиваясь от «пуль».", sample: "images/02-matrix.jpg" },
+  { id: 3, film: "Сияние", desc: "Выгляните из-за угла коридора с безумной, широкой улыбкой.", sample: "images/03-shining.jpg" },
+  { id: 4, film: "Ла-Ла Ленд", desc: "Встаньте в силуэт на фоне яркого окна или заката в танцевальной позе.", sample: "images/04-lalaland.jpg" },
+  { id: 5, film: "Один дома", desc: "Прижмите ладони к щекам и изобразите крик у любой двери или зеркала.", sample: "images/05-homealone.jpg" },
+  { id: 6, film: "Кин-дза-дза", desc: "Поприветствуй всех легендарным «Ку!»", sample: "images/06-kindzadza.jpg" },
+  { id: 7, film: "Рокки", desc: "Торжественно вскиньте руки вверх буквой «V», стоя на лестнице.", sample: "images/07-rocky.jpg" },
+  { id: 8, film: "Криминальное чтиво", desc: "Изобразите комичный твист-танец в любом просторном месте.", sample: "images/08-pulpfiction.jpg" },
+  { id: 9, film: "Миссия невыполнима", desc: "Почувствуй себя известным шпионом, замри неподвижно как Том Круз.", sample: "images/09-missionimpossible.jpg" },
+  { id: 10, film: "Звёздные войны", desc: "Встаньте друг напротив друга и вытяните руки, как будто держите световые мечи.", sample: "images/10-starwars.jpg" }
+];
+
+var workingTasks = [];
+
+function showDiag(msg) {
+  var el = document.getElementById("diag");
+  el.textContent = "⚠️ " + msg;
+  el.classList.remove("hidden");
+}
+
+// Ловим вообще любые ошибки на странице и показываем их — чтобы никогда не было
+// молчаливого "ничего не происходит"
+window.addEventListener("error", function (e) {
+  showDiag("Ошибка: " + e.message);
+});
+window.addEventListener("unhandledrejection", function (e) {
+  showDiag("Ошибка: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+
+function safeLoadTasks() {
+  try {
+    var raw = localStorage.getItem(TASKS_STORAGE_KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    showDiag("Не удалось прочитать сохранённые сцены, используем список по умолчанию.");
+  }
+  return DEFAULT_TASKS.map(function (t) { return Object.assign({}, t); });
+}
+
+function safeSaveTasks(tasks) {
+  try {
+    localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
+    return true;
+  } catch (e) {
+    showDiag("Не удалось сохранить изменения в этом браузере: " + e.message);
+    return false;
+  }
+}
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+// --------------------------------------------------------------
+// Форма пароля — без sessionStorage, максимально просто
+// --------------------------------------------------------------
+var gateForm = document.getElementById("gate-form");
+gateForm.addEventListener("submit", function (e) {
+  e.preventDefault();
+  var value = document.getElementById("gate-password").value.trim();
+  if (value === ADMIN_PASSWORD) {
+    document.getElementById("gate").classList.add("hidden");
+    document.getElementById("panel").classList.remove("hidden");
+    document.getElementById("gate-error").classList.add("hidden");
+    workingTasks = safeLoadTasks();
+    renderTasks();
+  } else {
+    document.getElementById("gate-error").classList.remove("hidden");
+  }
+});
+
+document.getElementById("btn-logout").addEventListener("click", function () {
+  document.getElementById("panel").classList.add("hidden");
+  document.getElementById("gate").classList.remove("hidden");
+  document.getElementById("gate-password").value = "";
+});
+
+// --------------------------------------------------------------
+// Рендер списка сцен для редактирования
+// --------------------------------------------------------------
+function renderTasks() {
+  var wrap = document.getElementById("task-list");
+  wrap.innerHTML = "";
+
+  if (workingTasks.length === 0) {
+    wrap.innerHTML = '<p class="text-reel-muted text-sm text-center py-6">Все сцены удалены. Нажмите «Добавить сцену».</p>';
+    return;
+  }
+
+  workingTasks.forEach(function (task, index) {
+    var card = document.createElement("div");
+    card.className = "card-frame rounded-2xl p-4 flex flex-col gap-3 mb-4";
+    card.innerHTML =
+      '<div class="flex items-center justify-between">' +
+        '<p class="scene-num text-reel-gold text-xs tracking-widest2 uppercase">Сцена ' + String(index + 1).padStart(2, "0") + '</p>' +
+        '<button data-idx="' + index + '" class="btn-delete text-red-400/80 text-xs font-semibold uppercase tracking-wide">Удалить</button>' +
+      '</div>' +
+      '<div>' +
+        '<label class="text-reel-muted text-[11px] uppercase tracking-widest2 mb-1 block">Название фильма</label>' +
+        '<input type="text" data-idx="' + index + '" data-field="film" value="' + escapeHtml(task.film) + '" ' +
+          'class="field w-full bg-reel-panel2 border border-reel-gold/20 rounded-xl px-3 py-2.5 text-reel-cream text-sm focus:outline-none focus:border-reel-gold" />' +
+      '</div>' +
+      '<div>' +
+        '<label class="text-reel-muted text-[11px] uppercase tracking-widest2 mb-1 block">Описание позы / сцены</label>' +
+        '<textarea data-idx="' + index + '" data-field="desc" rows="2" ' +
+          'class="field w-full bg-reel-panel2 border border-reel-gold/20 rounded-xl px-3 py-2.5 text-reel-cream text-sm resize-none focus:outline-none focus:border-reel-gold">' + escapeHtml(task.desc) + '</textarea>' +
+      '</div>' +
+      '<div>' +
+        '<label class="text-reel-muted text-[11px] uppercase tracking-widest2 mb-1 block">Фото-образец</label>' +
+        '<div class="flex items-center gap-3">' +
+          '<img src="' + escapeHtml(task.sample) + '" data-preview-idx="' + index + '" class="preview w-16 h-20 object-cover rounded-lg border border-reel-gold/25 bg-reel-panel2 flex-shrink-0" alt="" />' +
+          '<label class="btn-ghost flex-1 py-2.5 rounded-xl text-center text-[13px] font-semibold cursor-pointer">' +
+            'Загрузить фото' +
+            '<input type="file" accept="image/*" data-idx="' + index + '" class="file-input hidden" />' +
+          '</label>' +
+        '</div>' +
+        '<p class="status-line text-reel-muted text-[11px] mt-1.5" data-status-idx="' + index + '"></p>' +
+      '</div>';
+    wrap.appendChild(card);
+  });
+
+  wrap.querySelectorAll(".field").forEach(function (el) {
+    el.addEventListener("input", function (e) {
+      var idx = Number(e.target.dataset.idx);
+      var field = e.target.dataset.field;
+      if (workingTasks[idx]) workingTasks[idx][field] = e.target.value;
+      hideSaveStatus();
+    });
+  });
+
+  wrap.querySelectorAll(".btn-delete").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var idx = Number(btn.dataset.idx);
+      var task = workingTasks[idx];
+      var label = task && task.film ? '«' + task.film + '»' : "эту сцену";
+      if (confirm("Удалить сцену " + label + "?")) {
+        workingTasks.splice(idx, 1);
+        renderTasks();
+        hideSaveStatus();
+      }
+    });
+  });
+
+  wrap.querySelectorAll(".file-input").forEach(function (input) {
+    input.addEventListener("change", function (e) {
+      var idx = Number(e.target.dataset.idx);
+      var file = e.target.files[0];
+      if (!file) return;
+      var statusEl = wrap.querySelector('.status-line[data-status-idx="' + idx + '"]');
+      var previewEl = wrap.querySelector('.preview[data-preview-idx="' + idx + '"]');
+      if (statusEl) statusEl.textContent = "Обрабатываем фото…";
+
+      compressImageToDataUrl(file, 1000, 0.8).then(function (dataUrl) {
+        if (workingTasks[idx]) workingTasks[idx].sample = dataUrl;
+        if (previewEl) previewEl.src = dataUrl;
+        if (statusEl) statusEl.textContent = "Фото загружено ✓ Не забудьте нажать «Сохранить изменения»";
+        hideSaveStatus();
+      }).catch(function (err) {
+        if (statusEl) statusEl.textContent = "Не удалось загрузить фото: " + err.message;
+      });
+    });
+  });
+}
+
+function compressImageToDataUrl(file, maxSize, quality) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = function () { reject(new Error("не удалось прочитать файл")); };
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = function () { reject(new Error("не удалось декодировать изображение")); };
+      img.onload = function () {
+        var width = img.width, height = img.height;
+        if (width > height && width > maxSize) {
+          height = Math.round((height * maxSize) / width);
+          width = maxSize;
+        } else if (height > maxSize) {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
+        }
+        var canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function hideSaveStatus() {
+  document.getElementById("save-status").classList.add("hidden");
+}
+function showSaveStatus(text) {
+  var el = document.getElementById("save-status");
+  el.textContent = text;
+  el.classList.remove("hidden");
+}
+
+document.getElementById("btn-add-scene").addEventListener("click", function () {
+  var maxId = workingTasks.reduce(function (m, t) { return Math.max(m, t.id); }, 0);
+  workingTasks.push({ id: maxId + 1, film: "Новая сцена", desc: "Опишите позу или действие.", sample: "placeholder.jpg" });
+  renderTasks();
+});
+
+document.getElementById("btn-save").addEventListener("click", function () {
+  var cleaned = workingTasks.map(function (t) {
+    return Object.assign({}, t, {
+      film: (t.film || "").trim() || "Без названия",
+      sample: (t.sample || "").trim() || "placeholder.jpg"
+    });
+  });
+  workingTasks = cleaned;
+  var ok = safeSaveTasks(cleaned);
+  renderTasks();
+  showSaveStatus(ok ? "Сохранено в этом браузере ✓" : "Не удалось сохранить — см. сообщение выше");
+});
+
+document.getElementById("btn-reset").addEventListener("click", function () {
+  if (!confirm("Восстановить исходный список из 10 сцен? Все правки в этом браузере будут потеряны.")) return;
+  workingTasks = DEFAULT_TASKS.map(function (t) { return Object.assign({}, t); });
+  safeSaveTasks(workingTasks);
+  renderTasks();
+  showSaveStatus("Список восстановлен ✓");
+});
+
+document.getElementById("btn-copy-code").addEventListener("click", function () {
+  var code = buildTasksSourceCode(workingTasks);
+  var textarea = document.getElementById("export-code");
+  textarea.value = code;
+
+  function flash(msg) {
+    var btn = document.getElementById("btn-copy-code");
+    var original = btn.textContent;
+    btn.textContent = msg;
+    setTimeout(function () { btn.textContent = original; }, 2200);
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(function () {
+      flash("Скопировано! Вставьте в script.js");
+    }).catch(function () {
+      textarea.classList.remove("hidden");
+      textarea.select();
+      document.execCommand("copy");
+      textarea.classList.add("hidden");
+      flash("Скопировано! Вставьте в script.js");
+    });
+  } else {
+    textarea.classList.remove("hidden");
+    textarea.select();
+    document.execCommand("copy");
+    textarea.classList.add("hidden");
+    flash("Скопировано! Вставьте в script.js");
+  }
+});
+
+function buildTasksSourceCode(tasks) {
+  var lines = tasks.map(function (t) {
+    return "  { id: " + t.id + ", film: " + JSON.stringify(t.film) + ", desc: " + JSON.stringify(t.desc) + ", sample: " + JSON.stringify(t.sample) + " },";
+  });
+  return "const DEFAULT_TASKS = [\n" + lines.join("\n") + "\n];";
+}
+
+// --------------------------------------------------------------
+// Вкладки: «Сцены» / «Фото команд»
+// --------------------------------------------------------------
+var tabBtnScenes = document.getElementById("tab-btn-scenes");
+var tabBtnPhotos = document.getElementById("tab-btn-photos");
+var tabScenes = document.getElementById("tab-scenes");
+var tabPhotos = document.getElementById("tab-photos");
+
+function setActiveTab(tab) {
+  var onScenes = tab === "scenes";
+  tabScenes.classList.toggle("hidden", !onScenes);
+  tabPhotos.classList.toggle("hidden", onScenes);
+  tabBtnScenes.classList.toggle("active", onScenes);
+  tabBtnPhotos.classList.toggle("active", !onScenes);
+  if (!onScenes && allPhotos === null) {
+    loadPhotos();
+  }
+}
+tabBtnScenes.addEventListener("click", function () { setActiveTab("scenes"); });
+tabBtnPhotos.addEventListener("click", function () { setActiveTab("photos"); });
+setActiveTab("scenes");
+
+// --------------------------------------------------------------
+// Проверка фото команд
+// --------------------------------------------------------------
+var allPhotos = null; // null = ещё не загружали
+var currentPhotoFilter = "all";
+
+document.getElementById("btn-refresh-photos").addEventListener("click", loadPhotos);
+
+document.querySelectorAll(".photo-filter-btn").forEach(function (btn) {
+  if (btn.dataset.filter === "all") btn.classList.add("active");
+  btn.addEventListener("click", function () {
+    currentPhotoFilter = btn.dataset.filter;
+    document.querySelectorAll(".photo-filter-btn").forEach(function (b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    renderPhotos();
+  });
+});
+
+function loadPhotos() {
+  var statusEl = document.getElementById("photos-status");
+  var listEl = document.getElementById("photo-list");
+  statusEl.textContent = "Загружаем фото…";
+  statusEl.classList.remove("hidden");
+  listEl.innerHTML = "";
+
+  fetch("/.netlify/functions/photos?password=" + encodeURIComponent(ADMIN_PASSWORD))
+    .then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
+    .then(function (data) {
+      if (!data.ok) throw new Error(data.error || "unknown error");
+      allPhotos = data.items;
+      renderPhotos();
+    })
+    .catch(function (err) {
+      statusEl.textContent = "Не удалось загрузить фото: " + err.message + ". Проверьте, что сайт задеплоен через GitHub (нужны переменные и npm install) — см. README.";
+      statusEl.classList.remove("hidden");
+      showDiag("Ошибка загрузки фото: " + err.message);
+    });
+}
+
+function renderPhotos() {
+  var statusEl = document.getElementById("photos-status");
+  var listEl = document.getElementById("photo-list");
+
+  if (allPhotos === null) return;
+
+  var filtered = allPhotos.filter(function (p) {
+    if (currentPhotoFilter === "all") return true;
+    if (currentPhotoFilter === "favorite") return !!p.favorite;
+    return p.status === currentPhotoFilter;
+  });
+
+  if (filtered.length === 0) {
+    statusEl.textContent = "Пока нет фото в этой категории.";
+    statusEl.classList.remove("hidden");
+    listEl.innerHTML = "";
+    return;
+  }
+
+  statusEl.classList.add("hidden");
+
+  // Группируем по названию команды
+  var byTeam = {};
+  var teamOrder = [];
+  filtered.forEach(function (p) {
+    var key = p.teamName || "Без названия";
+    if (!byTeam[key]) { byTeam[key] = []; teamOrder.push(key); }
+    byTeam[key].push(p);
+  });
+
+  var statusLabel = { pending: "На проверке", approved: "Одобрено", rejected: "Отклонено" };
+
+  listEl.innerHTML = teamOrder.map(function (team) {
+    var cards = byTeam[team].map(function (p) {
+      var badgeClass = "status-" + p.status;
+      var badgeText = statusLabel[p.status] || p.status;
+      return (
+        '<div class="card-frame rounded-2xl overflow-hidden mb-3">' +
+          '<img src="data:' + escapeHtml(p.mime || "image/jpeg") + ';base64,' + p.dataBase64 + '" class="w-full aspect-[4/5] object-cover" alt="Фото команды" />' +
+          '<div class="p-4">' +
+            '<div class="flex items-center justify-between mb-2">' +
+              '<span class="status-badge ' + badgeClass + '">' + badgeText + '</span>' +
+              (p.favorite ? '<span class="text-reel-goldlight text-lg">★</span>' : '') +
+            '</div>' +
+            '<p class="text-reel-cream text-[14px] font-semibold mb-3">Сцена №' + escapeHtml(p.taskId) + ': ' + escapeHtml(p.filmTitle) + '</p>' +
+            '<div class="flex gap-2">' +
+              '<button data-id="' + p.id + '" data-action="approve" class="photo-action-btn flex-1 py-2.5 rounded-xl text-[12px] font-bold uppercase" style="background:rgba(74,222,128,0.15);color:#4ADE80;">Одобрить</button>' +
+              '<button data-id="' + p.id + '" data-action="reject" class="photo-action-btn flex-1 py-2.5 rounded-xl text-[12px] font-bold uppercase" style="background:rgba(248,113,113,0.15);color:#F87171;">Отклонить</button>' +
+              '<button data-id="' + p.id + '" data-action="' + (p.favorite ? "unfavorite" : "favorite") + '" class="photo-action-btn py-2.5 px-3.5 rounded-xl text-[14px]" style="background:rgba(212,175,55,0.15);color:#F0CE6B;">★</button>' +
+              '<button data-id="' + p.id + '" data-action="delete" class="photo-action-btn photo-delete-btn py-2.5 px-3.5 rounded-xl text-[14px]" style="background:rgba(139,135,156,0.15);color:#8B879C;">🗑</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join("");
+
+    return (
+      '<div class="mb-2">' +
+        '<p class="scene-num text-reel-gold text-sm tracking-widest2 uppercase mb-2">🎬 ' + escapeHtml(team) + '</p>' +
+        cards +
+      '</div>'
+    );
+  }).join("");
+
+  document.querySelectorAll(".photo-action-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.dataset.id;
+      var action = btn.dataset.action;
+
+      if (action === "delete") {
+        if (!confirm("Удалить это фото навсегда? Отменить будет нельзя.")) return;
+      }
+
+      btn.disabled = true;
+      fetch("/.netlify/functions/photoAction", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: id, action: action, password: ADMIN_PASSWORD }),
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.error || "unknown error");
+          if (action === "delete") {
+            allPhotos = allPhotos.filter(function (p) { return p.id !== id; });
+            renderPhotos();
+            return;
+          }
+          // Обновляем локальное состояние без полной перезагрузки
+          var photo = allPhotos.find(function (p) { return p.id === id; });
+          if (photo) {
+            if (action === "approve") photo.status = "approved";
+            if (action === "reject") photo.status = "rejected";
+            if (action === "favorite") photo.favorite = true;
+            if (action === "unfavorite") photo.favorite = false;
+          }
+          renderPhotos();
+        })
+        .catch(function (err) {
+          showDiag("Не удалось выполнить действие: " + err.message);
+          btn.disabled = false;
+        });
+    });
+  });
+}
+
+// Автофокус на поле пароля при открытии страницы
+document.getElementById("gate-password").focus();
+</script>
+</body>
+</html>
